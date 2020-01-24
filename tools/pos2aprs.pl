@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 ## aprs-output provided by daniestevez
-## axudp extensions provided by dl9rdz
+## axudp+dao extensions provided by dl9rdz
 use strict;
 use warnings;
 use IO::Socket::INET;
@@ -14,7 +14,9 @@ my $passcode;
 my $comment;
 
 my $udp;
-GetOptions("u=s" => \$udp) or die "Error in command line arguments\n";
+my $usedao;
+my $fixedid;
+GetOptions("u=s" => \$udp, "d" => \$usedao, "i=s" => \$fixedid) or die "Error in command line arguments\n";
 
 while (@ARGV) {
   $mycallsign = shift @ARGV;
@@ -46,7 +48,9 @@ my $str;
 my $speed = 0.00;
 my $course = 0.00;
 
-my $callsign;
+# Use id "SONDE" as long as no ID has been decoded (e.g. for DFM)
+# Use fixed if if specified by command line argument
+my $callsign = $fixedid || "SONDE";
 
 my $temp;
 
@@ -108,7 +112,7 @@ while ($line = <$fpi>) {
 
     print STDERR $line; ## entweder: alle Zeilen ausgeben
 
-    if ($line =~ /(\d\d):(\d\d):(\d\d\.?\d?\d?\d?).*\ +lat:\ *(-?\d*)(\.\d*).*\ +lon:\ *(-?\d*)(\.\d*).*\ +alt:\ *(-?\d*\.\d*).*/) {
+    if ($line =~ /(\d\d):(\d\d):(\d\d\.?\d?\d?\d?).*\ +lat:\ *(-?\d*)(\.\d*).*\ +lon:\ *(-?\d*)(\.\d*).*\ +alt:\ *(-?\d+\.?\d*).*/) {
 
     #print STDERR $line; ## oder: nur Zeile mit Koordinaten ausgeben
 
@@ -137,7 +141,7 @@ while ($line = <$fpi>) {
 
 	    # match either (id) or (type:id) and return id
 	    if ($line =~ /\(.*?([\w]+)\)/) {
-	        $callsign = $1;
+	        $callsign = $1 unless $fixedid;
 	    }
 
 	    if ($line =~ /T=(-?[\d.]+)C/) {
@@ -146,13 +150,24 @@ while ($line = <$fpi>) {
 	    else {
 	         $temp = "";
 	    }
-
-	    $str = sprintf("$mycallsign>APRS,TCPIP*:;%-9s*%06dh%07.2f$NS/%08.2f${EW}O%03d/%03d/A=%06d$comment$temp", $callsign, $hms, $lat, $lon, $course, $speed, $alt);
+            my($latstr,$lonstr,$dao);
+            if($usedao) {
+	        $latstr = sprintf("%09.4f",$lat);
+	        my $latdao = substr($latstr,7,2,'');
+	        $lonstr = sprintf("%010.4f",$lon);
+	        my $londao = substr($lonstr,8,2,'');
+	        $dao = '!w'. chr(int($latdao/1.1 + 0.5) + 33) . chr(int($londao/1.1 + 0.5) + 33) . '!';
+	    } else {
+		$latstr = sprintf("%07.2f",$lat);
+		$lonstr = sprintf("%08.2f",$lon);
+		$dao = "";
+	    }
+	    $str = sprintf("$mycallsign>APRS,TCPIP*:;%-9s*%06dh%s$NS/%s${EW}O%03d/%03d/A=%06d$comment$temp%s", $callsign, $hms, $latstr, $lonstr, $course, $speed, $alt, $dao);
 	    print $fpo "$str\n";
 
 	    if($sock) {
-	        $str = (split(":",$str))[1];
-		print $sock appendcrc($kissheader.chr(0x03).chr(0xf0).$str);
+	        $str = (split(":",$str,2))[1];
+		$sock->send(appendcrc($kissheader.chr(0x03).chr(0xf0).$str));
 	    }
 
     }
