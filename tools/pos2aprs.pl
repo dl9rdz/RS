@@ -18,7 +18,7 @@ my $usedao;
 my $fixedid;
 my $help;
 GetOptions("help|?" => \$help, "u=s" => \$udp, "d" => \$usedao, "i=s" => \$fixedid) or die "Error in command line arguments, use -? for help\n";
-die <<'END';
+die <<'END' if $help;
 Usage: pos2aprs.pl [options] <mycallsign> <passcode> <comment>
 
 <mycallsign> is used as source call in all APRS messages
