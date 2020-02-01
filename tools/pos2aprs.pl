@@ -16,7 +16,22 @@ my $comment;
 my $udp;
 my $usedao;
 my $fixedid;
-GetOptions("u=s" => \$udp, "d" => \$usedao, "i=s" => \$fixedid) or die "Error in command line arguments\n";
+my $help;
+GetOptions("help|?" => \$help, "u=s" => \$udp, "d" => \$usedao, "i=s" => \$fixedid) or die "Error in command line arguments, use -? for help\n";
+die <<'END';
+Usage: pos2aprs.pl [options] <mycallsign> <passcode> <comment>
+
+<mycallsign> is used as source call in all APRS messages
+<passcode> is used for authenticating to an APRS server (if stdout is forwared to such)
+<comment> is appended as comment to all APRS messages
+
+Possible options:
+  -?, -h	Print this help text
+  -u ip:port	Send object reports as axudp messages to this address
+                e.g. '-u 127.0.0.1:9002' to send position reports to local aprsmap instance
+  -d            Use APRS DAO extensions for high-precision coordinates (abt 30cm instead of 27m)
+  -i label      Use 'label' as object identifier (do not extract ID from data)
+END
 
 while (@ARGV) {
   $mycallsign = shift @ARGV;
