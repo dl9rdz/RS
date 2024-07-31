@@ -9,14 +9,18 @@
 #ifndef M_PI
     #define M_PI  (3.1415926535897932384626433832795)
 #endif
+#define _2PI  (6.2831853071795864769252867665590)
 
 
+#ifndef INTTYPES
+#define INTTYPES
 typedef unsigned char  ui8_t;
 typedef unsigned short ui16_t;
 typedef unsigned int   ui32_t;
 typedef char  i8_t;
 typedef short i16_t;
 typedef int   i32_t;
+#endif
 
 
 #define MAX_FQ 5
@@ -33,6 +37,7 @@ typedef struct {
     int max_fq;
     double xlt_fq;
     float complex *blk;
+    int used;
 } thd_t;
 
 
@@ -76,14 +81,19 @@ typedef struct {
     float *match;
     float *bufs;
     float mv;
+    float mv2;
     ui32_t mv_pos;
+    ui32_t mv2_pos;
+    ui32_t last_detect;
     //
     int N_norm;
     int Nvar;
+    /*
     float xsum;
     float qsum;
     float *xs;
     float *qs;
+    */
 
     // IQ-data
     int opt_iq;
@@ -91,6 +101,10 @@ typedef struct {
     float complex *rot_iqbuf;
     float complex F1sum;
     float complex F2sum;
+    //
+    double complex iw1;
+    double complex iw2;
+
 
     //
     char *rawbits;
@@ -123,8 +137,9 @@ typedef struct {
     int blk_cnt;
     ui32_t sr_base;
     ui32_t dectaps;
-    ui32_t sample_dec;
+    ui32_t sample_decX;
     ui32_t lut_len;
+    ui32_t sample_decM;
     float complex *decXbuffer;
     float complex *decMbuf;
     float complex *ex; // exp_lut
@@ -144,9 +159,11 @@ typedef struct {
     int lpFMtaps; // ui32_t
     float *ws_lpFM;
     float *lpFM_buf;
-	float *fm_buffer;
+    float *fm_buffer;
 
-    thd_t thd;
+    int opt_cnt;
+
+    thd_t *thd;
 } dsp_t;
 
 
@@ -164,19 +181,27 @@ typedef struct {
 } pcm_t;
 
 
+typedef struct {
+    ui8_t hb;
+    float sb;
+} hsbit_t;
+
 
 typedef struct {
     pcm_t pcm;
     thd_t thd;
     int option_jsn;
     int option_dc;
+    int option_cnt;
+    int jsn_freq;
 } thargs_t;
 
 
 
-float read_wav_header(pcm_t *);
+int read_wav_header(pcm_t *);
 int f32buf_sample(dsp_t *, int);
 int read_slbit(dsp_t *, int*, int, int, int, float, int);
+int read_softbit(dsp_t *, hsbit_t *, int, int, int, float, int );
 
 int init_buffers(dsp_t *);
 int free_buffers(dsp_t *);
@@ -188,4 +213,7 @@ int find_header(dsp_t *, float, int, int, int);
 int decimate_init(float f, int taps);
 int decimate_free(void);
 int iq_dc_init(pcm_t *);
+
+int reset_blockread(dsp_t *);
+
 

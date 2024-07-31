@@ -51,6 +51,8 @@ else {
 
 my $geoid = 50.0;  ## GPS ueber Ellipsoid; Geoid-Hoehe in Europa ca 40-50m
 
+$| = 1;  ## line buffering erzwingen
+
 while ($line = <$fpi>) {
 
     print STDERR $line; ## entweder: alle Zeilen ausgeben
@@ -63,7 +65,7 @@ while ($line = <$fpi>) {
 
         $hms = $1*10000+$2*100+$3;
 
-        if ($4 < 0) { $NS="S"; $sign *= -1; }
+        if ($4 < 0) { $NS="S"; $sign = -1; }
         else        { $NS="N"; $sign = 1}
         $lat = $sign*$4*100+$5*60;
 
